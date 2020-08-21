@@ -14,7 +14,7 @@ class ErrorPagesDeployerTest extends \PHPUnit\Framework\TestCase
      */
     private $errorPagesDeployer;
 
-    public function setUp()
+    public function setUp(): void
     {
         $this->objectManager = \Magento\TestFramework\ObjectManager::getInstance();
         $this->errorPagesDeployer = $this->objectManager->get(\MageSuite\MaintenancePage\Service\ErrorPagesDeployer::class);
