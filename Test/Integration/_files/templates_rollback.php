@@ -1,23 +1,23 @@
 <?php
 
-function removeDir($dir)
+function removeDir($dir): bool
 {
-    if(!file_exists($dir)) {
-        return;
+    if (!file_exists($dir)) {
+        return true;
     }
 
     $files = scandir($dir);
 
     foreach ($files as $file) {
-        if($file == '.' or $file == '..'){
+        if ($file == '.' || $file == '..') {
             continue;
         }
 
         $path = $dir . '/' . $file;
 
-        if(is_dir($path)){
+        if (is_dir($path)) {
             removeDir($path);
-        }else{
+        } else {
             unlink($path);
         }
     }
@@ -28,8 +28,8 @@ function removeDir($dir)
 
 removeDir(BP . '/pub/errors/custom');
 
-if(file_exists(BP . '/pub/errors/local.xml')) {
-    unlink(BP . '/pub/errors/local.xml');
+if (file_exists(BP . '/pub/errors/local_sample.xml')) {
+    unlink(BP . '/pub/errors/local_sample.xml');
 }
 
 removeDir(BP . '/vendor/magento/theme-frontend-luma/errors');
