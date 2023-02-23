@@ -4,43 +4,17 @@ namespace MageSuite\MaintenancePage\Service;
 
 class ErrorPagesDeployer
 {
-    const DEFAULT_CS_THEME_PATH = 'frontend/Creativestyle/theme-creativeshop';
-    const DEFAULT_MAGENTO_THEME_PATH = 'frontend/Magento/luma';
+    protected const CREATIVESHOP_THEME_PATH = 'frontend/Creativestyle/theme-creativeshop';
+    protected const LUMA_THEME_PATH = 'frontend/Magento/luma';
 
-    /**
-     * @var \Magento\Framework\App\State
-     */
-    private $state;
-
-    /**
-     * @var \Magento\Framework\View\DesignInterface
-     */
-    private $design;
-
-    /**
-     * @var \Magento\Theme\Model\Theme\ThemeProvider
-     */
-    private $themeProvider;
-
-    /**
-     * @var \Magento\Framework\View\Design\Theme\Customization\Path
-     */
-    private $customization;
-
-    /**
-     * @var \Magento\Framework\Filesystem\Driver\File
-     */
-    private $fileDriver;
-
-    /**
-     * @var \Magento\Framework\Filesystem\Directory\Write
-     */
-    private $write;
-
-    /**
-     * @var \Magento\Framework\Config\ScopeInterface
-     */
-    private $scope;
+    protected \Magento\Framework\App\State $state;
+    protected \Magento\Framework\View\DesignInterface $design;
+    protected \Magento\Theme\Model\Theme\ThemeProvider $themeProvider;
+    protected \Magento\Framework\View\Design\Theme\Customization\Path $customization;
+    protected \Magento\Framework\Filesystem\Driver\File $fileDriver;
+    protected \Magento\Framework\Filesystem\Directory\WriteFactory $writeFactory;
+    protected \Magento\Framework\Config\ScopeInterface $scope;
+    protected \Magento\Framework\Filesystem\Io\File $file;
 
     public function __construct(
         \Magento\Framework\App\State $state,
@@ -48,20 +22,21 @@ class ErrorPagesDeployer
         \Magento\Theme\Model\Theme\ThemeProvider $themeProvider,
         \Magento\Framework\View\Design\Theme\Customization\Path $customization,
         \Magento\Framework\Filesystem\Driver\File $fileDriver,
-        \Magento\Framework\Filesystem\Directory\WriteFactory $write,
-        \Magento\Framework\Config\ScopeInterface $scope
-    )
-    {
+        \Magento\Framework\Filesystem\Directory\WriteFactory $writeFactory,
+        \Magento\Framework\Config\ScopeInterface $scope,
+        \Magento\Framework\Filesystem\Io\File $file
+    ) {
         $this->state = $state;
         $this->design = $design;
         $this->themeProvider = $themeProvider;
         $this->customization = $customization;
         $this->fileDriver = $fileDriver;
-        $this->write = $write;
+        $this->writeFactory = $writeFactory;
         $this->scope = $scope;
+        $this->file = $file;
     }
 
-    public function execute()
+    public function execute(): void
     {
         if ($this->scope->getCurrentScope() === 'primary') {
             $this->state->setAreaCode('frontend');
@@ -70,91 +45,88 @@ class ErrorPagesDeployer
         $themeId = $this->design->getConfigurationDesignTheme('frontend');
 
         if (!$themeId) {
-            return false;
+            return;
         }
 
-        $themeId = !empty($themeId) ? $themeId : self::DEFAULT_MAGENTO_THEME_PATH;
+        $themeId = !empty($themeId)
+            ? $themeId
+            : self::LUMA_THEME_PATH;
 
-        if (is_numeric($themeId)) {
-            $theme = $this->themeProvider->getThemeById($themeId);
-        } else {
-            $theme = $this->themeProvider->getThemeByFullPath('frontend/' . $themeId);
-        }
+        $theme = is_numeric($themeId)
+            ? $this->themeProvider->getThemeById($themeId)
+            : $this->themeProvider->getThemeByFullPath('frontend/' . $themeId);
 
         if (!$theme) {
-            return false;
+            return;
         }
 
         $this->deployErrorPages($theme);
     }
 
-    private function deployErrorPages($theme)
+    protected function deployErrorPages($currentTheme): void
     {
-        $defaultTheme = $this->themeProvider->getThemeByFullPath(self::DEFAULT_CS_THEME_PATH);
+        $creativeshopTheme = $this->themeProvider->getThemeByFullPath(self::CREATIVESHOP_THEME_PATH);
 
-        if ($defaultTheme and $defaultTheme->getId()) {
-            $this->deployErrorPagesFromTheme($defaultTheme);
+        if ($creativeshopTheme && $currentTheme->getCode() != 'Magento/luma') {
+            $this->deployErrorPagesFromTheme($creativeshopTheme);
         }
 
-        $this->deployErrorPagesFromTheme($theme);
-
-        return true;
+        $this->deployErrorPagesFromTheme($currentTheme);
     }
 
-    private function deployErrorPagesFromTheme($theme)
+    protected function deployErrorPagesFromTheme($theme): void
     {
         $errorPath = $this->returnPathFromTheme($theme);
 
-        if ($errorPath) {
-            $this->copyErrorPages($errorPath);
+        if (!$errorPath) {
+            return;
         }
+
+        $this->copyErrorPages($errorPath);
     }
 
-    private function returnPathFromTheme($theme)
+    protected function returnPathFromTheme($theme): ?string
     {
         $basePath = $this->customization->getThemeFilesPath($theme);
         $errorPath = $basePath . '/errors/';
 
-        if (file_exists($errorPath)) {
+        if ($this->file->fileExists($errorPath, false)) {
             return $errorPath;
         }
 
-        return false;
+        return null;
     }
 
-    private function copyErrorPages($errorPages)
+    protected function copyErrorPages($errorPages): void
     {
         $localXmlFile = $errorPages . 'local.xml';
 
-        if (file_exists($localXmlFile)) {
+        if ($this->file->fileExists($localXmlFile, false)) {
             $this->fileDriver->copy($errorPages . 'local.xml', BP . '/pub/errors/local.xml');
         }
 
         $this->copyRecursive($errorPages . '/', BP . '/pub/errors/');
     }
 
-    private function copyRecursive($source, $target)
+    protected function copyRecursive($source, $target): void
     {
-        if (!file_exists($target)) {
+        if (!$this->file->fileExists($target, false)) {
             $this->fileDriver->createDirectory($target);
         }
 
-        $write = $this->write->create($source);
+        $write = $this->writeFactory->create($source);
         $files = $write->readRecursively();
 
         if (empty($files)) {
-            return false;
+            return;
         }
 
         foreach ($files as $file) {
-
-            if (is_dir($source . $file)) {
+            if ($this->fileDriver->isDirectory($source . $file)) {
                 $this->fileDriver->createDirectory($target . $file);
             } else {
                 $this->fileDriver->copy($source . $file, $target . $file);
             }
         }
-
-        return true;
     }
 }

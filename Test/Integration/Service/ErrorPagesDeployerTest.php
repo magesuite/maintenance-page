@@ -7,12 +7,12 @@ class ErrorPagesDeployerTest extends \PHPUnit\Framework\TestCase
     /**
      * @var \Magento\TestFramework\ObjectManager
      */
-    private $objectManager;
+    protected $objectManager;
 
     /**
      * @var \MageSuite\MaintenancePage\Service\ErrorPagesDeployer
      */
-    private $errorPagesDeployer;
+    protected $errorPagesDeployer;
 
     public function setUp(): void
     {
@@ -31,7 +31,7 @@ class ErrorPagesDeployerTest extends \PHPUnit\Framework\TestCase
 
         $path = BP . '/pub/errors/';
 
-        $this->assertFileExists($path . 'local.xml');
+        $this->assertFileExists($path . 'local_sample.xml');
         $this->assertDirectoryExists($path . 'custom');
         $this->assertFileExists($path . 'custom/index.html');
         $this->assertFileExists($path . 'custom/css/style.css');
@@ -49,5 +49,4 @@ class ErrorPagesDeployerTest extends \PHPUnit\Framework\TestCase
     {
         require __DIR__ . '/../_files/templates_rollback.php';
     }
-
 }

@@ -4,10 +4,7 @@ namespace MageSuite\MaintenancePage\Setup;
 
 class RecurringData implements \Magento\Framework\Setup\InstallDataInterface
 {
-    /**
-     * @param \MageSuite\MaintenancePage\Service\ErrorPagesDeployer
-     */
-    private $errorPagesDeployer;
+    protected \MageSuite\MaintenancePage\Service\ErrorPagesDeployer $errorPagesDeployer;
 
     public function __construct(
         \MageSuite\MaintenancePage\Service\ErrorPagesDeployer $errorPagesDeployer
@@ -17,8 +14,8 @@ class RecurringData implements \Magento\Framework\Setup\InstallDataInterface
 
     public function install(
         \Magento\Framework\Setup\ModuleDataSetupInterface $setup,
-        \Magento\Framework\Setup\ModuleContextInterface $context)
-    {
+        \Magento\Framework\Setup\ModuleContextInterface $context
+    ): void {
         $this->errorPagesDeployer->execute();
     }
 }

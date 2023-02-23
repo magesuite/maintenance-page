@@ -1,8 +1,8 @@
 <?php
 
-function full_copy($source, $target)
+function full_copy($source, $target): void
 {
-    @mkdir($target);
+    mkdir($target);
     $d = dir($source);
 
     while (($file = $d->read()) !== false) {
@@ -23,7 +23,5 @@ function full_copy($source, $target)
     $d->close();
 }
 
-
 $files = __DIR__ . '/errors';
-
 full_copy($files, BP . '/vendor/magento/theme-frontend-luma/errors');
