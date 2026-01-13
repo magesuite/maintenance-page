@@ -1,39 +1,22 @@
 <?php
 
+declare(strict_types=1);
+
 namespace MageSuite\MaintenancePage\Service;
 
 class ErrorPagesDeployer
 {
-    protected const CREATIVESHOP_THEME_PATH = 'frontend/Creativestyle/theme-creativeshop';
-    protected const LUMA_THEME_PATH = 'frontend/Magento/luma';
-
-    protected \Magento\Framework\App\State $state;
-    protected \Magento\Framework\View\DesignInterface $design;
-    protected \Magento\Theme\Model\Theme\ThemeProvider $themeProvider;
-    protected \Magento\Framework\View\Design\Theme\Customization\Path $customization;
-    protected \Magento\Framework\Filesystem\Driver\File $fileDriver;
-    protected \Magento\Framework\Filesystem\Directory\WriteFactory $writeFactory;
-    protected \Magento\Framework\Config\ScopeInterface $scope;
-    protected \Magento\Framework\Filesystem\Io\File $file;
-
     public function __construct(
-        \Magento\Framework\App\State $state,
-        \Magento\Framework\View\DesignInterface $design,
-        \Magento\Theme\Model\Theme\ThemeProvider $themeProvider,
-        \Magento\Framework\View\Design\Theme\Customization\Path $customization,
-        \Magento\Framework\Filesystem\Driver\File $fileDriver,
-        \Magento\Framework\Filesystem\Directory\WriteFactory $writeFactory,
-        \Magento\Framework\Config\ScopeInterface $scope,
-        \Magento\Framework\Filesystem\Io\File $file
+        protected \Magento\Framework\App\State $state,
+        protected \Magento\Framework\View\DesignInterface $design,
+        protected \Magento\Theme\Model\Theme\ThemeProvider $themeProvider,
+        protected \Magento\Framework\View\Design\Theme\Customization\Path $customization,
+        protected \Magento\Framework\Filesystem\Driver\File $fileDriver,
+        protected \Magento\Framework\Filesystem\Directory\WriteFactory $writeFactory,
+        protected \Magento\Framework\Config\ScopeInterface $scope,
+        protected \Magento\Framework\Filesystem\Io\File $file,
+        protected \Magento\Framework\View\Design\Theme\ListInterface $themeList
     ) {
-        $this->state = $state;
-        $this->design = $design;
-        $this->themeProvider = $themeProvider;
-        $this->customization = $customization;
-        $this->fileDriver = $fileDriver;
-        $this->writeFactory = $writeFactory;
-        $this->scope = $scope;
-        $this->file = $file;
     }
 
     public function execute(): void
@@ -42,42 +25,18 @@ class ErrorPagesDeployer
             $this->state->setAreaCode('frontend');
         }
 
-        $themeId = $this->design->getConfigurationDesignTheme('frontend');
+        foreach ($this->themeList->getItems() as $key => $theme) {
+            if (str_contains($key, \Magento\Framework\App\Area::AREA_ADMINHTML)) {
+                continue;
+            }
 
-        if (!$themeId) {
-            return;
+            $this->deployErrorPagesFromTheme($theme);
         }
-
-        $themeId = !empty($themeId)
-            ? $themeId
-            : self::LUMA_THEME_PATH;
-
-        $theme = is_numeric($themeId)
-            ? $this->themeProvider->getThemeById($themeId)
-            : $this->themeProvider->getThemeByFullPath('frontend/' . $themeId);
-
-        if (!$theme) {
-            return;
-        }
-
-        $this->deployErrorPages($theme);
-    }
-
-    protected function deployErrorPages($currentTheme): void
-    {
-        $creativeshopTheme = $this->themeProvider->getThemeByFullPath(self::CREATIVESHOP_THEME_PATH);
-
-        if ($creativeshopTheme && $currentTheme->getCode() != 'Magento/luma') {
-            $this->deployErrorPagesFromTheme($creativeshopTheme);
-        }
-
-        $this->deployErrorPagesFromTheme($currentTheme);
     }
 
     protected function deployErrorPagesFromTheme($theme): void
     {
         $errorPath = $this->returnPathFromTheme($theme);
-
         if (!$errorPath) {
             return;
         }
@@ -100,7 +59,6 @@ class ErrorPagesDeployer
     protected function copyErrorPages($errorPages): void
     {
         $localXmlFile = $errorPages . 'local.xml';
-
         if ($this->file->fileExists($localXmlFile, false)) {
             $this->fileDriver->copy($errorPages . 'local.xml', BP . '/pub/errors/local.xml');
         }
