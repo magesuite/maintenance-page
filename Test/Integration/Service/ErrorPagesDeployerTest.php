@@ -1,31 +1,25 @@
 <?php
 
+declare(strict_types=1);
+
 namespace MageSuite\MaintenancePage\Test\Integration\Service;
 
 class ErrorPagesDeployerTest extends \PHPUnit\Framework\TestCase
 {
-    /**
-     * @var \Magento\TestFramework\ObjectManager
-     */
-    protected $objectManager;
+    protected ?\MageSuite\MaintenancePage\Service\ErrorPagesDeployer $errorPagesDeployer;
 
-    /**
-     * @var \MageSuite\MaintenancePage\Service\ErrorPagesDeployer
-     */
-    protected $errorPagesDeployer;
-
-    public function setUp(): void
+    protected function setUp(): void
     {
-        $this->objectManager = \Magento\TestFramework\ObjectManager::getInstance();
-        $this->errorPagesDeployer = $this->objectManager->get(\MageSuite\MaintenancePage\Service\ErrorPagesDeployer::class);
+        $objectManager = \Magento\TestFramework\ObjectManager::getInstance();
+        $this->errorPagesDeployer = $objectManager->get(\MageSuite\MaintenancePage\Service\ErrorPagesDeployer::class);
     }
 
     /**
      * @magentoAppIsolation enabled
      * @magentoAppArea frontend
-     * @magentoDataFixture prepareTemplates
+     * @magentoDataFixture MageSuite_MaintenancePage::Test/Integration/_files/templates.php
      */
-    public function testItReturnsCorrectTemplatePath()
+    public function testItReturnsCorrectTemplatePath(): void
     {
         $this->errorPagesDeployer->execute();
 
@@ -38,15 +32,5 @@ class ErrorPagesDeployerTest extends \PHPUnit\Framework\TestCase
 
         $this->assertEquals('Test error page', file_get_contents($path . 'custom/index.html'));
         $this->assertEquals('.body{ background: #000; }', file_get_contents($path . 'custom/css/style.css'));
-    }
-
-    public static function prepareTemplates()
-    {
-        require __DIR__ . '/../_files/templates.php';
-    }
-
-    public static function prepareTemplatesRollback()
-    {
-        require __DIR__ . '/../_files/templates_rollback.php';
     }
 }
